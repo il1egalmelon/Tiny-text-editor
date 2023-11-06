@@ -12,17 +12,20 @@ class TextEditor {
     private int cursorPosition;
     private int saved;
     private string FILEPATH;
+    private int logindex;
 
     public TextEditor() {
         buffer = new List<string>();
         cursorLine = 0;
         cursorPosition = 0;
+        logindex = 0;
         saved = 0;
         FILEPATH = "";
     }
 
     public void Run() {
         Console.Clear();
+        File.WriteAllText("latestlog.txt", "");
 
         // Ask the user to load a file
         Console.Write("Enter the path of the file: ");
@@ -169,8 +172,9 @@ class TextEditor {
             string currentLine = buffer[cursorLine];
             int lineLength = currentLine != null ? currentLine.Length : 0;
             Console.SetCursorPosition(Min(lineLength, cursorPosition), cursorLine - startLine);
-        } catch (Exception) {
-
+        } catch (Exception e) {
+            File.AppendAllText("latestlog.txt", Convert.ToString(logindex) + ": " + e + "\n");
+            logindex++;
         }
     }
 
@@ -271,6 +275,9 @@ class TextEditor {
         while (true) {
             Console.Write("> ");
             string input = Console.ReadLine();
+
+            File.AppendAllText("latestlog.txt", Convert.ToString(logindex) + ": " + input + "\n");
+            logindex++;
 
             if (input == "") {
                 // Do nothing lmao
