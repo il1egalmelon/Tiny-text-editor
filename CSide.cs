@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -120,6 +120,7 @@ class TextEditor {
 
         Console.Write("Press any key to continue...");
         Console.ReadKey(true);
+        Console.WriteLine("");
     }
 
     private void Remove() {
