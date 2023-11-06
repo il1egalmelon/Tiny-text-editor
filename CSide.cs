@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -353,6 +353,8 @@ class TextEditor {
                 catch (Exception ex) {
                     Console.WriteLine("Error saving file: " + ex.Message);
                 } 
+            } else {
+                Console.WriteLine("Invalid command");
             }
         }
         Console.BackgroundColor = ConsoleColor.Black;
