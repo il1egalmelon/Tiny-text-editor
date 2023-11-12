@@ -365,7 +365,9 @@ class TextEditor {
                 Console.Write(    "F1   -> Refresh Screen\n" +
                                   "F2   -> Save\n" +
                                   "F3   -> Debugger\n" +
-                                  "ESC  -> Save and close editor\n");
+                                  "ESC  -> Interactive mode\n" +
+                                  "I    -> Insert mode\n" +
+                                  "F4   -> Save and exit the editor\n");
             } else if (input == "exit") {
                 break;
             } else if (input == "?") {
