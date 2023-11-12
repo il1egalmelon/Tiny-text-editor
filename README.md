@@ -14,4 +14,4 @@ Keybinds:
     F3  -> Debugger
     F4  -> Save and close the editor
   
-Type ? in debugger to show the list of commands.
+Type ? in debugger to show the list of commands for the debugger.
