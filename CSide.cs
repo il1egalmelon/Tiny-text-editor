@@ -13,6 +13,11 @@ class TextEditor {
     private int saved;
     private string FILEPATH;
     private int logindex;
+    private int infobarcharlines;
+
+    private string textmode = "Interactive";
+    private string additionaltext = "";
+    private string additionalstatus = "";
 
     public TextEditor() {
         buffer = new List<string>();
@@ -21,6 +26,7 @@ class TextEditor {
         logindex = 0;
         saved = 0;
         FILEPATH = "";
+        infobarcharlines = 3;
     }
 
     public void Run() {
@@ -56,13 +62,22 @@ class TextEditor {
             else if (key == ConsoleKey.LeftArrow) {
                 MoveCursorLeft();
             }
-            else if (key == ConsoleKey.Enter) {
+            else if (key == ConsoleKey.Enter && textmode == "Insert") {
                 InsertNewline();
             }
-            else if (key == ConsoleKey.Escape) {
+            else if (key == ConsoleKey.F4) {
                 Console.Clear();
                 SaveFile(0);
                 break;
+            }
+            else if (key == ConsoleKey.I && textmode == "Interactive") {
+                textmode = "Insert";
+            }
+            else if (key == ConsoleKey.Escape && textmode == "Insert") {
+                textmode = "Interactive";
+            }
+            else if (key == ConsoleKey.C && textmode == "Interactive") {
+                commandhandler();
             }
             else if (key == ConsoleKey.F3) {
                 Console.Clear();
@@ -72,16 +87,16 @@ class TextEditor {
                 Console.Clear();
                 SaveFile(1);
             }
-            else if (key == ConsoleKey.Spacebar) {
+            else if (key == ConsoleKey.Spacebar && textmode == "Insert") {
                 InsertCharacter(' ');
             }
-            else if (key == ConsoleKey.Backspace) {
+            else if (key == ConsoleKey.Backspace && textmode == "Insert" ) {
                 DeleteCharacter();
             }
-            else if (key == ConsoleKey.F1) {
+            else if (key == ConsoleKey.F1 && textmode == "Insert" ) {
                 RefreshScreen();
             }
-            else { 
+            else if (textmode == "Insert"){ 
                 InsertCharacter(keyInfo.KeyChar);
             }
         }
@@ -157,6 +172,8 @@ class TextEditor {
         Console.Clear();
         saved = 0;
 
+        infobar();
+
         try {
             int visibleLines = Min(Console.WindowHeight, MaxLines);
             int startLine = Max(0, cursorLine - visibleLines + 1);
@@ -172,11 +189,74 @@ class TextEditor {
             // Place cursor at the end of the line
             string currentLine = buffer[cursorLine];
             int lineLength = currentLine != null ? currentLine.Length : 0;
-            Console.SetCursorPosition(Min(lineLength, cursorPosition), cursorLine - startLine);
+            Console.SetCursorPosition(Min(lineLength, cursorPosition), cursorLine - startLine + infobarcharlines);
         } catch (Exception e) {
             File.AppendAllText("latestlog.txt", Convert.ToString(logindex) + ": " + e + "\n");
             logindex++;
         }
+    }
+
+    private void commands() {
+        if (additionaltext == "s") {
+            try {
+                File.WriteAllLines(FILEPATH, buffer);
+                additionaltext = "File saved successfully, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+                saved = 1;
+            }
+            catch (Exception ex) {
+                additionaltext = "Error saving file: " + ex.Message + ", press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+                saved = 1;
+            } 
+        } else {
+            additionaltext = "Invalid, press any key to continue...";
+            RefreshScreen();
+            Console.ReadKey(true);
+        }
+    }
+
+    private void commandhandler() {
+        additionalstatus = "[Command]";
+        while (true) {
+            RefreshScreen();
+            var keyInfo = Console.ReadKey(true);
+            var key = keyInfo.Key;
+
+            char c = keyInfo.KeyChar;
+            if (key == ConsoleKey.Enter) {
+                commands();
+                break;
+            }
+            else if (key == ConsoleKey.Backspace) {
+                try {
+                    additionaltext = additionaltext.Remove(additionaltext.Length - 1, 1);
+                } catch (Exception) {
+
+                }
+            }
+            else {
+                additionaltext += c;
+            }
+        }
+        additionaltext = "";
+        additionalstatus = "";
+    }
+
+    private void infobar() {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("[" + textmode + "]" + additionalstatus);
+        Console.WriteLine(additionaltext);
+
+        //info bar seperator line
+        for (int i = 0; i < MaxCharactersPerLine; i++) {
+            Console.Write("-");
+        }
+        Console.WriteLine("");
+
+        Console.ForegroundColor = ConsoleColor.White;
     }
 
     private void MoveCursorUp() {
@@ -227,8 +307,7 @@ class TextEditor {
         }
     }
 
-    private void InsertNewline()
-    {
+    private void InsertNewline() {
         // Shift lines down to make room for the new line
         buffer.Insert(cursorLine + 1, "");
 
@@ -353,7 +432,7 @@ class TextEditor {
                 }
                 catch (Exception ex) {
                     Console.WriteLine("Error saving file: " + ex.Message);
-                } 
+                }
             } else {
                 Console.WriteLine("Invalid command");
             }
