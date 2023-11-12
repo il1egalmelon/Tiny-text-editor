@@ -7,9 +7,11 @@ Default startup screen character size is 50x100 (Lines x Char).
 
 Keybinds:
 
-    ESC -> Save and close the editor
+    ESC -> Interactive mode
+    I   -> Insert mode
     F1  -> Refresh screen manually
     F2  -> Save file
     F3  -> Debugger
+    F4  -> Save and close the editor
   
 Type ? in debugger to show the list of commands.
