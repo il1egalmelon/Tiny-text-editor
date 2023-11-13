@@ -14,6 +14,8 @@ Keybinds:
     F3  -> Debugger
     F4  -> Save and close the editor
     C   -> Command line
+    U   -> Undo
+    R   -> Redo
 
 Command line:
 
@@ -21,5 +23,9 @@ Command line:
     s       - Saves to same file
     q       - Saves to same file and quit
     goto {} - Goto a line
+
+Debugs in command line:
+
+    /DEBUG:historytime
   
 Type ? in debugger to show the list of commands for the debugger.
