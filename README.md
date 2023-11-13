@@ -13,5 +13,13 @@ Keybinds:
     F2  -> Save file
     F3  -> Debugger
     F4  -> Save and close the editor
+    C   -> Command line
+
+Command line:
+
+    clrl    - Does the same as the one in the debugger
+    s       - Saves to same file
+    q       - Saves to same file and quit
+    goto {} - Goto a line
   
 Type ? in debugger to show the list of commands for the debugger.
