@@ -36,7 +36,7 @@ class TextEditor {
         // Ask the user to load a file
         Console.Write("Enter the path of the file: ");
         string filePath = Console.ReadLine();
-
+        
         if (!File.Exists(filePath)) {
             string write = "Write in this file";
             File.WriteAllText(filePath, write);
@@ -174,26 +174,28 @@ class TextEditor {
 
         infobar();
 
+        int visibleLines = Min(Console.WindowHeight, MaxLines);
+        int startLine = Max(0, cursorLine - visibleLines + 1);
+
         try {
-            int visibleLines = Min(Console.WindowHeight, MaxLines);
-            int startLine = Max(0, cursorLine - visibleLines + 1);
-                
             for (int i = startLine; i < startLine + visibleLines; i++) {
                 string line = buffer[i];
                 string displayLineText = line != null ? line.PadRight(MaxCharactersPerLine) : new string(' ', MaxCharactersPerLine);
+                Console.Write(i.ToString("D8"));
+                Console.Write(" | ");
                 Console.WriteLine(displayLineText);
             }
-
-            Console.SetCursorPosition(cursorPosition, cursorLine - startLine);
-            
-            // Place cursor at the end of the line
-            string currentLine = buffer[cursorLine];
-            int lineLength = currentLine != null ? currentLine.Length : 0;
-            Console.SetCursorPosition(Min(lineLength, cursorPosition), cursorLine - startLine + infobarcharlines);
         } catch (Exception e) {
             File.AppendAllText("latestlog.txt", Convert.ToString(logindex) + ": " + e + "\n");
             logindex++;
         }
+
+        Console.SetCursorPosition(cursorPosition + 12, cursorLine - startLine);
+            
+        // Place cursor at the end of the line
+        string currentLine = buffer[cursorLine];
+        int lineLength = currentLine != null ? currentLine.Length : 0;
+        Console.SetCursorPosition(Min(lineLength, cursorPosition) + 11, cursorLine - startLine + infobarcharlines);
     }
 
     private void commands() {
@@ -211,7 +213,38 @@ class TextEditor {
                 Console.ReadKey(true);
                 saved = 1;
             } 
-        } else {
+        }
+        else if (additionaltext == "q") {
+            additionaltext = "s";
+            commands();
+            Environment.Exit(0);
+        }
+        else if (additionaltext.Contains("goto")) {
+            string[] temp = additionaltext.Split(" ");
+
+            try {
+                int tempmax = buffer.Count;
+                if (Convert.ToInt32(temp[1]) <= tempmax) {
+                    cursorLine = Convert.ToInt32(temp[1]);
+                } else {
+                    Convert.ToInt32("fuck");
+                }
+            } catch (Exception) {
+                additionaltext = "Invalid, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            }
+        } 
+        else if (additionaltext == "clrl") {
+            for (int i = buffer.Count - 1; i >= 0; i--) {
+                if (buffer[i] == "") {
+                    buffer.RemoveAt(i);
+                } else {
+                    break;
+                }
+            }
+        }
+        else {
             additionaltext = "Invalid, press any key to continue...";
             RefreshScreen();
             Console.ReadKey(true);
@@ -340,7 +373,7 @@ class TextEditor {
             cursorPosition--;
         }
 
-        if (cursorPosition <= 0 && buffer[cursorLine] != null && cursorPosition <= buffer[cursorLine].Length) {
+        if (cursorPosition == 0 && buffer[cursorLine] != null && cursorPosition == buffer[cursorLine].Length) {
             if (buffer[cursorLine] == "" && cursorLine != 0) {
                 buffer.RemoveAt(cursorLine);
                 cursorLine--;
@@ -381,7 +414,8 @@ class TextEditor {
                                   "load -> Load a file\n" +
                                   "size -> Window size of editor\n" +
                                   "quit -> Quit without saving\n" +
-                                  "s    -> Save to same file\n");
+                                  "s    -> Save to same file\n" +
+                                  "clrl -> Clear excess null lines\n");
             } else if (input == "dump") {
                 foreach (string temp in buffer) {
                     Console.WriteLine(temp);
@@ -434,6 +468,14 @@ class TextEditor {
                 }
                 catch (Exception ex) {
                     Console.WriteLine("Error saving file: " + ex.Message);
+                }
+            } else if (input == "clrl") {
+                for (int i = buffer.Count - 1; i >= 0; i--) {
+                    if (buffer[i] == "") {
+                        buffer.RemoveAt(i);
+                    } else {
+                        break;
+                    }
                 }
             } else {
                 Console.WriteLine("Invalid command");
