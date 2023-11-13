@@ -15,6 +15,9 @@ class TextEditor {
     private int logindex;
     private int infobarcharlines;
 
+    private int historytime;
+    private int historymaxtime;
+
     private string textmode = "Interactive";
     private string additionaltext = "";
     private string additionalstatus = "";
@@ -27,9 +30,33 @@ class TextEditor {
         saved = 0;
         FILEPATH = "";
         infobarcharlines = 3;
+        historytime = 0;
+        historymaxtime = 0;
     }
 
     public void Run() {
+        int errorstartup = 0;
+
+        try {
+            System.IO.Directory.Delete("history", true);
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            errorstartup = 1;
+        }
+
+        try {
+            System.IO.Directory.CreateDirectory("history"); 
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            errorstartup = 1;
+        }
+
+        if (errorstartup == 1) {
+            Console.Write("\nPress any key to continue...");
+
+            Console.ReadKey(true);
+        }
+
         Console.Clear();
         File.WriteAllText("latestlog.txt", "");
 
@@ -46,8 +73,15 @@ class TextEditor {
 
         LoadFile(filePath);
 
+        pushhistory();
+
         while (true) {
             RefreshScreen();
+
+            if (historytime > historymaxtime) {
+                historymaxtime = historytime;
+            }
+
             var keyInfo = Console.ReadKey(true);
             var key = keyInfo.Key;
             if (key == ConsoleKey.UpArrow) {
@@ -64,6 +98,7 @@ class TextEditor {
             }
             else if (key == ConsoleKey.Enter && textmode == "Insert") {
                 InsertNewline();
+                pushhistory();
             }
             else if (key == ConsoleKey.F4) {
                 Console.Clear();
@@ -87,32 +122,47 @@ class TextEditor {
                 Console.Clear();
                 SaveFile(1);
             }
+            else if (key == ConsoleKey.U && textmode == "Interactive") {
+                undo();
+            }
+            else if (key == ConsoleKey.R && textmode == "Interactive") {
+                redo();
+            }
             else if (key == ConsoleKey.Spacebar && textmode == "Insert") {
                 InsertCharacter(' ');
+                pushhistory();
             }
             else if (key == ConsoleKey.Backspace && textmode == "Insert" ) {
                 DeleteCharacter();
+                pushhistory();
             }
             else if (key == ConsoleKey.F1 && textmode == "Insert" ) {
                 RefreshScreen();
             }
             else if (textmode == "Insert"){ 
                 InsertCharacter(keyInfo.KeyChar);
+                pushhistory();
             }
         }
     }
     
     private void LoadFile(string path) {
-        string[] temp = File.ReadAllLines(path);
+        try {
+            string[] temp = File.ReadAllLines(path);
 
-        for (int i = 0; i < temp.Length; i++) {
-            buffer.Add(temp[i]);
-        }
-
-        if (buffer.Count < (MaxLines + 1)) {
-            for (int i = 0; (MaxLines + 1) > i; i++) {
-                buffer.Add("");
+            for (int i = 0; i < temp.Length; i++) {
+                buffer.Add(temp[i]);
             }
+
+            /* 
+            if (buffer.Count < (MaxLines + 1)) {
+                for (int i = 0; (MaxLines + 1) > i; i++) {
+                    buffer.Add("");
+                }
+            }
+            */
+        } catch (Exception) {
+
         }
     }
 
@@ -219,12 +269,17 @@ class TextEditor {
             commands();
             Environment.Exit(0);
         }
+        else if (additionaltext == "/DEBUG:historytime") {
+            additionaltext = Convert.ToString(historytime);
+            RefreshScreen();
+            Console.ReadKey(true);
+        }
         else if (additionaltext.Contains("goto")) {
             string[] temp = additionaltext.Split(" ");
 
             try {
                 int tempmax = buffer.Count;
-                if (Convert.ToInt32(temp[1]) <= tempmax) {
+                if (Convert.ToInt32(temp[1]) <= tempmax && Convert.ToInt32(temp[1]) >= 0) {
                     cursorLine = Convert.ToInt32(temp[1]);
                 } else {
                     Convert.ToInt32("fuck");
@@ -276,6 +331,50 @@ class TextEditor {
         }
         additionaltext = "";
         additionalstatus = "";
+    }
+
+    private void undo() {
+        try {
+            if (historytime > 1) {
+                buffer.Clear();
+                pophistory();
+                LoadFile("history/" + Convert.ToString(historytime - 1));
+            }
+        } catch (Exception) {
+
+        }
+    }
+
+    private void redo() {
+        try {
+            if (historytime + 1 <= historymaxtime) {
+                buffer.Clear();
+                historytime++;
+                LoadFile("history/" + Convert.ToString(historytime - 1));
+            }
+        } catch (Exception) {
+
+        }
+    }
+
+    private void pushhistory() {
+        try {
+            File.WriteAllText("history/" + Convert.ToString(historytime), "");
+            foreach (string x in buffer) {
+                File.AppendAllText(("history/" + Convert.ToString(historytime)), x + "\n");
+            }
+            historytime++;
+        } catch (Exception) {
+
+        }
+    }
+
+    private void pophistory() {
+        try {
+            historytime--;
+        } catch (Exception) {
+            
+        }
     }
 
     private void infobar() {
