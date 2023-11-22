@@ -27,5 +27,6 @@ Command line:
 Debugs in command line:
 
     /DEBUG:historytime
+    /DEBUG:size
   
 Type ? in debugger to show the list of commands for the debugger.
