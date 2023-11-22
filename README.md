@@ -13,7 +13,7 @@ Keybinds:
     F2  -> Save file
     F3  -> Debugger
     F4  -> Save and close the editor
-    C   -> Command line
+    :   -> Command line
     U   -> Undo
     R   -> Redo
 
