@@ -28,5 +28,6 @@ Debugs in command line:
 
     /DEBUG:historytime
     /DEBUG:size
+    /DEBUG:setsize <line> <char>
   
 Type ? in debugger to show the list of commands for the debugger.
