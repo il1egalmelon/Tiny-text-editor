@@ -1,9 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
 class TextEditor {
+    private string DecimalCharacters = "0123456789";
+
     private int MaxLines = 50;
     private int MaxCharactersPerLine = 100;
 
@@ -60,13 +63,23 @@ class TextEditor {
         Console.Clear();
         File.WriteAllText("latestlog.txt", "");
 
-        // Ask the user to load a file
+    gobacktoloadfile:
         Console.Write("Enter the path of the file: ");
         string filePath = Console.ReadLine();
         
+    gobacktoaskloadfile:
         if (!File.Exists(filePath)) {
-            string write = "Write in this file";
-            File.WriteAllText(filePath, write);
+            Console.Write("File doesn't exist, do you want to create it (Y / N): ");
+            string filecreationthing = Console.ReadLine();
+
+            if (filecreationthing == "Y") {
+                string write = "Write in this file";
+                File.WriteAllText(filePath, write);
+            } else if (filecreationthing == "N") {
+                goto gobacktoloadfile;
+            } else {
+                goto gobacktoaskloadfile;
+            }
         }
 
         FILEPATH = filePath;
@@ -111,7 +124,7 @@ class TextEditor {
             else if (key == ConsoleKey.Escape && textmode == "Insert") {
                 textmode = "Interactive";
             }
-            else if (key == ConsoleKey.C && textmode == "Interactive") {
+            else if (keyInfo.KeyChar == ':' && textmode == "Interactive") {
                 commandhandler();
             }
             else if (key == ConsoleKey.F3) {
@@ -139,6 +152,9 @@ class TextEditor {
             else if (key == ConsoleKey.F1 && textmode == "Insert" ) {
                 RefreshScreen();
             }
+            else if (DecimalCharacters.Contains(keyInfo.KeyChar) && textmode == "Interactive") {
+                multishift(keyInfo.KeyChar.ToString());
+            }
             else if (textmode == "Insert"){ 
                 InsertCharacter(keyInfo.KeyChar);
                 pushhistory();
@@ -154,7 +170,7 @@ class TextEditor {
                 buffer.Add(temp[i]);
             }
 
-            /* 
+            /*
             if (buffer.Count < (MaxLines + 1)) {
                 for (int i = 0; (MaxLines + 1) > i; i++) {
                     buffer.Add("");
@@ -186,6 +202,32 @@ class TextEditor {
         Console.Write("Press any key to continue...");
         Console.ReadKey(true);
         Console.WriteLine("");
+    }
+
+    private void multishift(string input) {
+        int num = int.Parse(input.ToString());
+        var keyInfo = Console.ReadKey(true);
+        var key = keyInfo.Key;
+
+        if (DecimalCharacters.Contains(keyInfo.KeyChar)) {
+            multishift(input + keyInfo.KeyChar.ToString());
+        } else if (key == ConsoleKey.UpArrow) {
+            for (int i = 0; i < num; i++) {
+                MoveCursorUp();
+            }
+        } else if (key == ConsoleKey.DownArrow) {
+            for (int i = 0; i < num; i++) {
+                MoveCursorDown();
+            }
+        } else if (key == ConsoleKey.LeftArrow) {
+            for (int i = 0; i < num; i++) {
+                MoveCursorLeft();
+            }
+        } else if (key == ConsoleKey.RightArrow) {
+            for (int i = 0; i < num; i++) {
+                MoveCursorRight();
+            }
+        }
     }
 
     private void Remove() {
@@ -231,8 +273,10 @@ class TextEditor {
             for (int i = startLine; i < startLine + visibleLines; i++) {
                 string line = buffer[i];
                 string displayLineText = line != null ? line.PadRight(MaxCharactersPerLine) : new string(' ', MaxCharactersPerLine);
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.Write(i.ToString("D8"));
                 Console.Write(" | ");
+                Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine(displayLineText);
             }
         } catch (Exception e) {
@@ -245,7 +289,11 @@ class TextEditor {
         // Place cursor at the end of the line
         string currentLine = buffer[cursorLine];
         int lineLength = currentLine != null ? currentLine.Length : 0;
-        Console.SetCursorPosition(Min(lineLength, cursorPosition) + 11, cursorLine - startLine + infobarcharlines);
+        try {
+            Console.SetCursorPosition(Min(lineLength, cursorPosition) + 11, cursorLine - startLine + infobarcharlines);
+        } catch (Exception) {
+
+        }
     }
 
     private void commands() {
@@ -274,6 +322,11 @@ class TextEditor {
             RefreshScreen();
             Console.ReadKey(true);
         }
+        else if (additionaltext == "/DEBUG:size") {
+            additionaltext = "Lines: " + Convert.ToString(MaxLines) + ", Chars: " + Convert.ToString(MaxCharactersPerLine);
+            RefreshScreen();
+            Console.ReadKey(true);
+        }
         else if (additionaltext.Contains("goto")) {
             string[] temp = additionaltext.Split(" ");
 
@@ -282,6 +335,7 @@ class TextEditor {
                 if (Convert.ToInt32(temp[1]) <= tempmax && Convert.ToInt32(temp[1]) >= 0) {
                     cursorLine = Convert.ToInt32(temp[1]);
                 } else {
+                    //This will throw an error
                     Convert.ToInt32("fuck");
                 }
             } catch (Exception) {
@@ -293,6 +347,9 @@ class TextEditor {
         else if (additionaltext == "clrl") {
             for (int i = buffer.Count - 1; i >= 0; i--) {
                 if (buffer[i] == "") {
+                    if (cursorLine == i) {
+                        cursorLine--;
+                    }
                     buffer.RemoveAt(i);
                 } else {
                     break;
@@ -383,7 +440,8 @@ class TextEditor {
         Console.WriteLine(additionaltext);
 
         //info bar seperator line
-        for (int i = 0; i < MaxCharactersPerLine; i++) {
+        Console.Write("---------+");
+        for (int i = 0; i < MaxCharactersPerLine - 10; i++) {
             Console.Write("-");
         }
         Console.WriteLine("");
@@ -499,7 +557,8 @@ class TextEditor {
                                   "F3   -> Debugger\n" +
                                   "ESC  -> Interactive mode\n" +
                                   "I    -> Insert mode\n" +
-                                  "F4   -> Save and exit the editor\n");
+                                  "F4   -> Save and exit the editor\n" +
+                                  ":    -> Command mode\n");
             } else if (input == "exit") {
                 break;
             } else if (input == "?") {
