@@ -407,15 +407,22 @@ class TextEditor {
                 string[] keywords = File.ReadAllLines("highlight/" + (additionaltext.Split(" "))[1]);
                 RefreshScreen();
 
+                int quoted = 0;
+
                 foreach (string keywordsin in keywords) {
                     string[] temp = keywordsin.Split(" ");
 
                     if (temp[0] == "quote") {
                         highlightquote = temp[1];
+                        quoted = 1;
                     }
                     else {
                         highlightkeywords.Add(keywordsin);
                     }
+                }
+
+                if (quoted == 0) {
+                    highlightquote = "white";
                 }
             } catch (Exception) {
                 additionaltext = "Invalid, press any key to continue...";
@@ -709,21 +716,19 @@ class TextEditor {
         Console.ResetColor();
     }
 
-    public static void WriteLineColor(string text, string[] keywords, string quoteColor)
-    {
-        foreach (string keyword in keywords)
-        {
+    public static void WriteLineColor(string text, string[] keywords, string quoteColor) {
+        foreach (string keyword in keywords) {
             string[] parts = keyword.Split(' ');
 
-            if (parts.Length == 2)
-            {
-                string color = parts[0];
+            if (parts.Length == 2) {
+                string color = parts[0].ToLower();
                 string word = parts[1];
 
                 string startTag = GetColorStartTag(color);
                 string endTag = GetColorEndTag();
 
-                text = text.Replace(word, $"{startTag}{word}{endTag}");
+                string pattern = $@"(?<![a-zA-Z0-9]){Regex.Escape(word)}(?![a-zA-Z0-9])";
+                text = Regex.Replace(text, pattern, $"{startTag}$&{endTag}");
             }
         }
 
@@ -731,15 +736,13 @@ class TextEditor {
         string quoteStartTag = GetColorStartTag(quoteColor);
         string quoteEndTag = GetColorEndTag();
 
-        text = System.Text.RegularExpressions.Regex.Replace(text, quotePattern, $"{quoteStartTag}$&{quoteEndTag}");
+        text = Regex.Replace(text, quotePattern, $"{quoteStartTag}$&{quoteEndTag}");
 
         Console.WriteLine(text);
     }
 
-    private static string GetColorStartTag(string color)
-    {
-        switch (color.ToLower())
-        {
+    private static string GetColorStartTag(string color) {
+        switch (color.ToLower()) {
             case "black":
                 return "\u001b[30m";
             case "red":
@@ -761,8 +764,7 @@ class TextEditor {
         }
     }
 
-    private static string GetColorEndTag()
-    {
+    private static string GetColorEndTag() {
         return "\u001b[0m";
     }
 }
