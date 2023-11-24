@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 class TextEditor {
     private string DecimalCharacters = "0123456789";
@@ -10,20 +12,25 @@ class TextEditor {
     private int MaxLines = 50;
     private int MaxCharactersPerLine = 100;
 
-    private List<string> buffer;
+    public static List<string> buffer;
     private int cursorLine;
     private int cursorPosition;
     private int saved;
-    private string FILEPATH;
+    public static string? FILEPATH;
     private int logindex;
     private int infobarcharlines;
 
     private int historytime;
     private int historymaxtime;
 
-    private string textmode = "Interactive";
-    private string additionaltext = "";
-    private string additionalstatus = "";
+    public static string textmode = "Interactive";
+    public static string additionaltext = "";
+    public static string additionalstatus = "";
+    public static string additionalstatus2 = "";
+
+    bool highlightingstatus = false;
+    public static List<string> highlightkeywords;
+    public static string highlightquote = "";
 
     public TextEditor() {
         buffer = new List<string>();
@@ -35,6 +42,7 @@ class TextEditor {
         infobarcharlines = 3;
         historytime = 0;
         historymaxtime = 0;
+        highlightkeywords = new List<string>();
     }
 
     public void Run() {
@@ -55,6 +63,17 @@ class TextEditor {
         }
 
         if (errorstartup == 1) {
+            Console.Write("\nPress any key to continue...");
+
+            Console.ReadKey(true);
+        }
+
+        try {
+            if (!System.IO.Directory.Exists("highlight")) {
+                System.IO.Directory.CreateDirectory("highlight");
+            }
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
             Console.Write("\nPress any key to continue...");
 
             Console.ReadKey(true);
@@ -276,8 +295,13 @@ class TextEditor {
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.Write(i.ToString("D8"));
                 Console.Write(" | ");
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine(displayLineText);
+                Console.ResetColor();
+                if (highlightingstatus == false) {
+                    Console.WriteLine(displayLineText);
+                }
+                else {
+                    WriteLineColor(displayLineText, highlightkeywords.ToArray(), highlightquote);
+                }
             }
         } catch (Exception e) {
             File.AppendAllText("latestlog.txt", Convert.ToString(logindex) + ": " + e + "\n");
@@ -327,6 +351,21 @@ class TextEditor {
             RefreshScreen();
             Console.ReadKey(true);
         }
+        else if (additionaltext.Contains("/DEBUG:setsize")) {
+            string[] temp = additionaltext.Split(" ");
+
+            try {
+                MaxLines = Convert.ToInt32(temp[1]);
+                MaxCharactersPerLine = Convert.ToInt32(temp[2]);
+                additionaltext = "Changed to: " + temp[1] + "x" + temp[2] + ", press any key to continue";
+                RefreshScreen();
+                Console.ReadKey(true);
+            } catch (Exception) {
+                additionaltext = "Invalid, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            }
+        }
         else if (additionaltext.Contains("goto")) {
             string[] temp = additionaltext.Split(" ");
 
@@ -354,6 +393,34 @@ class TextEditor {
                 } else {
                     break;
                 }
+            }
+        }
+        else if (additionaltext.Contains("highlight")) {
+            try {
+                if (additionaltext.Split(" ")[1] == "default") {
+                    highlightingstatus = false;
+                }
+
+                highlightkeywords.Clear();
+                highlightingstatus = true;
+
+                string[] keywords = File.ReadAllLines("highlight/" + (additionaltext.Split(" "))[1]);
+                RefreshScreen();
+
+                foreach (string keywordsin in keywords) {
+                    string[] temp = keywordsin.Split(" ");
+
+                    if (temp[0] == "quote") {
+                        highlightquote = temp[1];
+                    }
+                    else {
+                        highlightkeywords.Add(keywordsin);
+                    }
+                }
+            } catch (Exception) {
+                additionaltext = "Invalid, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
             }
         }
         else {
@@ -446,7 +513,7 @@ class TextEditor {
         }
         Console.WriteLine("");
 
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
     }
 
     private void MoveCursorUp() {
@@ -639,7 +706,64 @@ class TextEditor {
                 Console.WriteLine("Invalid command");
             }
         }
-        Console.BackgroundColor = ConsoleColor.Black;
+        Console.ResetColor();
+    }
+
+    public static void WriteLineColor(string text, string[] keywords, string quoteColor)
+    {
+        foreach (string keyword in keywords)
+        {
+            string[] parts = keyword.Split(' ');
+
+            if (parts.Length == 2)
+            {
+                string color = parts[0];
+                string word = parts[1];
+
+                string startTag = GetColorStartTag(color);
+                string endTag = GetColorEndTag();
+
+                text = text.Replace(word, $"{startTag}{word}{endTag}");
+            }
+        }
+
+        string quotePattern = @"(""[^""]*"")|('[^']*')";
+        string quoteStartTag = GetColorStartTag(quoteColor);
+        string quoteEndTag = GetColorEndTag();
+
+        text = System.Text.RegularExpressions.Regex.Replace(text, quotePattern, $"{quoteStartTag}$&{quoteEndTag}");
+
+        Console.WriteLine(text);
+    }
+
+    private static string GetColorStartTag(string color)
+    {
+        switch (color.ToLower())
+        {
+            case "black":
+                return "\u001b[30m";
+            case "red":
+                return "\u001b[31m";
+            case "green":
+                return "\u001b[32m";
+            case "yellow":
+                return "\u001b[33m";
+            case "blue":
+                return "\u001b[34m";
+            case "magenta":
+                return "\u001b[35m";
+            case "cyan":
+                return "\u001b[36m";
+            case "white":
+                return "\u001b[37m";
+            default:
+                return "";
+        }
+    }
+
+    private static string GetColorEndTag()
+    {
+        return "\u001b[0m";
     }
 }
 
