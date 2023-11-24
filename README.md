@@ -1,7 +1,7 @@
 # Tiny-text-editor
 
 A text editor, yeah. You can compile it and use it pretty much anywhere. 
-The release program.run is compiled with Mono on Ubuntu 22.04. Please do not use it unless you are extremely lazy.
+The release program.run is compiled with Mono on Ubuntu 22.04. Please do not use it unless you are extremely lazy. It is usually very out of date.
 
 Default startup screen character size is 50x100 (Lines x Char).
 
