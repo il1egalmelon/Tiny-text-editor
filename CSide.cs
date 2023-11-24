@@ -32,6 +32,8 @@ class TextEditor {
     public static List<string> highlightkeywords;
     public static string highlightquote = "";
 
+    private string linemode = "DEC";
+
     public TextEditor() {
         buffer = new List<string>();
         cursorLine = 0;
@@ -319,7 +321,13 @@ class TextEditor {
                 string line = buffer[i];
                 string displayLineText = line != null ? line.PadRight(MaxCharactersPerLine) : new string(' ', MaxCharactersPerLine);
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write(i.ToString("D8"));
+                if (linemode == "DEC") {
+                    Console.Write(i.ToString("D8"));
+                } else if (linemode == "HEX") {
+                    Console.Write(i.ToString("X8"));
+                } else {
+                    Console.Write(i.ToString("D8"));
+                }
                 Console.Write(" | ");
                 Console.ResetColor();
                 if (highlightingstatus == false) {
@@ -456,6 +464,29 @@ class TextEditor {
                 additionaltext = "Loaded: " + additionaltext.Split(" ")[1] + ", press any key to continue...";
                 RefreshScreen();
                 Console.ReadKey(true);
+            } catch (Exception) {
+                additionaltext = "Invalid, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            }
+        }
+        else if (additionaltext.Contains("linemode")) {
+            try {
+                if (additionaltext.Split(" ")[1] == "HEX") {
+                    linemode = "HEX";
+                    additionaltext = "Switched to HEX line mode, press any key to continue...";
+                    RefreshScreen();
+                    Console.ReadKey(true);
+                } else if (additionaltext.Split(" ")[1] == "DEC") {
+                    linemode = "DEC";
+                    additionaltext = "Switched to DEC line mode, press any key to continue...";
+                    RefreshScreen();
+                    Console.ReadKey(true);
+                } else {
+                    additionaltext = "Invalid, press any key to continue...";
+                    RefreshScreen();
+                    Console.ReadKey(true);
+                }
             } catch (Exception) {
                 additionaltext = "Invalid, press any key to continue...";
                 RefreshScreen();
