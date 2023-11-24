@@ -11,6 +11,7 @@ class TextEditor {
 
     private int MaxLines = 40;
     private int MaxCharactersPerLine = 150;
+    private int padnumber = 0;
 
     public static List<string> buffer;
     private int cursorLine;
@@ -155,6 +156,16 @@ class TextEditor {
             }
             else if (key == ConsoleKey.LeftArrow) {
                 MoveCursorLeft();
+            }
+            else if (key == ConsoleKey.PageDown) {
+                for (int i = 0; i < MaxLines; i++) {
+                    MoveCursorDown();
+                }
+            }
+            else if (key == ConsoleKey.PageUp) {
+                for (int i = 0; i < MaxLines; i++) {
+                    MoveCursorUp();
+                }
             }
             else if (key == ConsoleKey.Enter && textmode == "Insert") {
                 InsertNewline();
@@ -314,7 +325,7 @@ class TextEditor {
         infobar();
 
         int visibleLines = Min(Console.WindowHeight, MaxLines);
-        int startLine = Max(0, cursorLine - visibleLines + 1);
+        int startLine = Max(0, cursorLine - visibleLines + 1 + padnumber);
 
         try {
             for (int i = startLine; i < startLine + visibleLines; i++) {
@@ -325,8 +336,11 @@ class TextEditor {
                     Console.Write(i.ToString("D8"));
                 } else if (linemode == "HEX") {
                     Console.Write(i.ToString("X8"));
+                } else if (linemode == "BIN") {
+                    string bin = Convert.ToString((int)(i & 0xFF), 2).PadLeft(8, '0').Substring(0, 8);
+                    Console.Write(bin.PadLeft(8, '0'));                
                 } else {
-                    Console.Write(i.ToString("D8"));
+                    Console.Write(i.ToString("D8").Substring(0, 7));
                 }
                 Console.Write(" | ");
                 Console.ResetColor();
@@ -482,11 +496,28 @@ class TextEditor {
                     additionaltext = "Switched to DEC line mode, press any key to continue...";
                     RefreshScreen();
                     Console.ReadKey(true);
+                } else if (additionaltext.Split(" ")[1] == "BIN") {
+                    linemode = "BIN";
+                    additionaltext = "Switched to BIN line mode, press any key to continue...";
+                    RefreshScreen();
+                    Console.ReadKey(true);
                 } else {
                     additionaltext = "Invalid, press any key to continue...";
                     RefreshScreen();
                     Console.ReadKey(true);
                 }
+            } catch (Exception) {
+                additionaltext = "Invalid, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            }
+        }
+        else if (additionaltext.Contains("padnum")) {
+            try {
+                padnumber = Convert.ToInt32(additionaltext.Split(" ")[1]);
+                additionaltext = "Padded lines: " + padnumber + ", press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
             } catch (Exception) {
                 additionaltext = "Invalid, press any key to continue...";
                 RefreshScreen();
@@ -695,7 +726,11 @@ class TextEditor {
                                   "ESC  -> Interactive mode\n" +
                                   "I    -> Insert mode\n" +
                                   "F4   -> Save and exit the editor\n" +
-                                  ":    -> Command mode\n");
+                                  ":    -> Command mode\n" + 
+                                  "U    -> Undo\n" +
+                                  "R    -> Redo\n" +
+                                  "PgUp -> Page up\n" +
+                                  "PgDn -> Page down\n");
             } else if (input == "exit") {
                 break;
             } else if (input == "?") {
@@ -703,20 +738,18 @@ class TextEditor {
                                   "exit -> Exits debugger\n" +
                                   "?    -> This menu\n" +
                                   "dump -> Dump text file\n" +
-                                  "comp -> Compile code\n" +
                                   "run  -> Run a program\n" +
                                   "save -> Save the file\n" +
                                   "load -> Load a file\n" +
                                   "size -> Window size of editor\n" +
                                   "quit -> Quit without saving\n" +
                                   "s    -> Save to same file\n" +
-                                  "clrl -> Clear excess null lines\n");
+                                  "clrl -> Clear excess null lines\n" +
+                                  "cmdh -> Command line help\n");
             } else if (input == "dump") {
                 foreach (string temp in buffer) {
                     Console.WriteLine(temp);
                 }
-            } else if (input == "comp") {
-                Console.WriteLine("FEATURE NOT AVAILABLE IN THIS VERSION");
             } else if (input == "run") {
                 Console.WriteLine("FEATURE NOT AVAILABLE IN THIS VERSION");
             } else if (input == "save") {
@@ -772,6 +805,14 @@ class TextEditor {
                         break;
                     }
                 }
+            } else if (input == "cmdh") {
+                Console.Write(    "clrl         - Clear excess lines\n" +
+                                  "s            - Save to same file\n" +
+                                  "q            - Save and quit\n" +
+                                  "goto {}      - Goto {} line\n" +
+                                  "highlight {} - Loads {} highlight file\n" +
+                                  "linemode{}   - Use a different line mode\n" +
+                                  "padnum {}    - {} lines the cursor can over/under run\n");
             } else {
                 Console.WriteLine("Invalid command");
             }
