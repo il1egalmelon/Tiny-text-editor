@@ -9,8 +9,8 @@ using System.Text.RegularExpressions;
 class TextEditor {
     private string DecimalCharacters = "0123456789";
 
-    private int MaxLines = 50;
-    private int MaxCharactersPerLine = 100;
+    private int MaxLines = 40;
+    private int MaxCharactersPerLine = 150;
 
     public static List<string> buffer;
     private int cursorLine;
@@ -69,8 +69,21 @@ class TextEditor {
         }
 
         try {
+            Console.Clear();
             if (!System.IO.Directory.Exists("highlight")) {
                 System.IO.Directory.CreateDirectory("highlight");
+            }
+        } catch (Exception ex) {
+            Console.WriteLine(ex);
+            Console.Write("\nPress any key to continue...");
+
+            Console.ReadKey(true);
+        }
+
+        try {
+            Console.Clear();
+            if (!System.IO.Directory.Exists("config")) {
+                System.IO.Directory.CreateDirectory("config");
             }
         } catch (Exception ex) {
             Console.WriteLine(ex);
@@ -106,6 +119,19 @@ class TextEditor {
         LoadFile(filePath);
 
         pushhistory();
+
+        if (File.Exists("config/startup.txt")) {
+            string[] startupcmd = File.ReadAllLines("config/startup.txt");
+            foreach (string command in startupcmd) {
+                additionaltext = command;
+                additionalstatus = "[startup]";
+                commands();
+                additionaltext = "";
+                additionalstatus = "";
+            }
+        } else {
+            File.Create("config/startup.txt");
+        }
 
         while (true) {
             RefreshScreen();
@@ -342,12 +368,14 @@ class TextEditor {
             Environment.Exit(0);
         }
         else if (additionaltext == "/DEBUG:historytime") {
-            additionaltext = Convert.ToString(historytime);
+            additionaltext = Convert.ToString(historytime) + ", press any key to continue...";
             RefreshScreen();
             Console.ReadKey(true);
         }
         else if (additionaltext == "/DEBUG:size") {
-            additionaltext = "Lines: " + Convert.ToString(MaxLines) + ", Chars: " + Convert.ToString(MaxCharactersPerLine);
+            additionaltext = "Lines: " + Convert.ToString(MaxLines) + 
+                             ", Chars: " + Convert.ToString(MaxCharactersPerLine) + 
+                             ", press any key to continue...";
             RefreshScreen();
             Console.ReadKey(true);
         }
@@ -357,7 +385,7 @@ class TextEditor {
             try {
                 MaxLines = Convert.ToInt32(temp[1]);
                 MaxCharactersPerLine = Convert.ToInt32(temp[2]);
-                additionaltext = "Changed to: " + temp[1] + "x" + temp[2] + ", press any key to continue";
+                additionaltext = "Changed to: " + temp[1] + "x" + temp[2] + ", press any key to continue...";
                 RefreshScreen();
                 Console.ReadKey(true);
             } catch (Exception) {
@@ -424,6 +452,10 @@ class TextEditor {
                 if (quoted == 0) {
                     highlightquote = "white";
                 }
+
+                additionaltext = "Loaded: " + additionaltext.Split(" ")[1] + ", press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
             } catch (Exception) {
                 additionaltext = "Invalid, press any key to continue...";
                 RefreshScreen();
