@@ -24,7 +24,8 @@ Command line:
     q            - Saves to same file and quit
     goto {}      - Goto a line
     highlight {} - Loads highlighter file
-    linemode {}  - Line mode switch from DEC to/from HEX
+    linemode {}  - Line mode switch from DEC, BIN or HEX
+    padnum {}    - How much the cursor can under/override the max line number
 
 Debugs in command line:
 
