@@ -24,6 +24,7 @@ Command line:
     q            - Saves to same file and quit
     goto {}      - Goto a line
     highlight {} - Loads highlighter file
+    linemode {}  - Line mode from DEC to HEX
 
 Debugs in command line:
 
