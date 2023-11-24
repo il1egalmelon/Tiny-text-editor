@@ -33,6 +33,12 @@ Debugs in command line:
   
 Type ? in debugger to show the list of commands for the debugger.
 
+Startup:
+
+    In a folder named "config", go to the "startup.txt" file.
+    In there, you can add your own startup command line commands.
+    Every line is one command.
+
 Text highlighting:
 
     This text editor has a very primative and sort of broken text highlighting feature.
