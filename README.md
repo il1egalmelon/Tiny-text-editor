@@ -14,20 +14,26 @@ Keybinds:
     F3   -> Debugger
     F4   -> Save and close the editor
     :    -> Command line
-    U    -> Undo
-    R    -> Redo
+    U    -> Undo                        (Interactive mode)
+    R    -> Redo                        (Interactive mode)
     PgUp -> Page up
     PgDn -> Page down
+    E    -> Tab mode                    (Interactive mode)
+    N    -> New tab                     (Interactive mode)
+    Left -> Goto left tab               (Tab mode)
+    Rght -> Goto right tab              (Tab mode)
 
 Command line:
 
-    clrl         - Does the same as the one in the debugger
-    s            - Saves to same file
-    q            - Saves to same file and quit
-    goto {}      - Goto a line
-    highlight {} - Loads highlighter file
-    linemode {}  - Line mode switch from DEC, BIN or HEX
-    padnum {}    - How much the cursor can under/override the max line number
+    clrl          - Does the same as the one in the debugger
+    s             - Saves to same file
+    q             - Saves to same file and quit
+    goto {}       - Goto a line
+    highlight {}  - Loads highlighter file
+    linemode {}   - Line mode switch from DEC, BIN or HEX
+    padnum {}     - How much the cursor can under/override the max line number
+    linestatus {} - Line status from true or false
+    l {}          - Saves and load a file
 
 Debugs in command line:
 
