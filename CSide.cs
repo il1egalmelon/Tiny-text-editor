@@ -4,10 +4,12 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 class TextEditor {
     private string DecimalCharacters = "0123456789";
+    
 
     private int MaxLines = 40;
     private int MaxCharactersPerLine = 150;
@@ -20,9 +22,16 @@ class TextEditor {
     public static string? FILEPATH;
     private int logindex;
     private int infobarcharlines;
+    private List<bool> linenumberstatus = new List<bool>();
 
     private int historytime;
     private int historymaxtime;
+
+    private static List<string> tabs = new List<string>();
+    private static int tabnum = 0;
+    private static List<string> tabbuffer = new List<string>();
+    private static List<int> tabcursorbufferline = new List<int>();
+    private static List<int> tabcursorbufferrow = new List<int>();
 
     public static string textmode = "Interactive";
     public static string additionaltext = "";
@@ -42,14 +51,17 @@ class TextEditor {
         logindex = 0;
         saved = 0;
         FILEPATH = "";
-        infobarcharlines = 3;
+        infobarcharlines = 5;
         historytime = 0;
         historymaxtime = 0;
         highlightkeywords = new List<string>();
     }
 
-    public void Run() {
+    public void RunTextEditor() {
         int errorstartup = 0;
+
+        tabs.Add("Editor");
+        linenumberstatus.Add(true);
 
         try {
             System.IO.Directory.Delete("history", true);
@@ -99,8 +111,14 @@ class TextEditor {
         File.WriteAllText("latestlog.txt", "");
 
     gobacktoloadfile:
-        Console.Write("Enter the path of the file: ");
+        Console.Write("Enter the path of the file ($none.tagsig$ for no file): ");
         string filePath = Console.ReadLine();
+
+        if (filePath == "$none.tagsig$") {
+            filePath = "";
+            buffer.Add("");
+            goto afterfileinit;
+        }
         
     gobacktoaskloadfile:
         if (!File.Exists(filePath)) {
@@ -117,6 +135,7 @@ class TextEditor {
             }
         }
 
+    afterfileinit:
         FILEPATH = filePath;
 
         LoadFile(filePath);
@@ -136,6 +155,10 @@ class TextEditor {
             File.Create("config/startup.txt");
         }
 
+        tabbuffer.Add(convertbuffer(buffer));
+        tabcursorbufferline.Add(0);
+        tabcursorbufferrow.Add(0);
+
         while (true) {
             RefreshScreen();
 
@@ -145,16 +168,16 @@ class TextEditor {
 
             var keyInfo = Console.ReadKey(true);
             var key = keyInfo.Key;
-            if (key == ConsoleKey.UpArrow) {
+            if (key == ConsoleKey.UpArrow && (textmode == "Insert" || textmode == "Interactive")) {
                 MoveCursorUp();
             }
-            else if (key == ConsoleKey.DownArrow) {
+            else if (key == ConsoleKey.DownArrow && (textmode == "Insert" || textmode == "Interactive")) {
                 MoveCursorDown();
             }
-            else if (key == ConsoleKey.RightArrow) {
+            else if (key == ConsoleKey.RightArrow && (textmode == "Insert" || textmode == "Interactive")) {
                 MoveCursorRight();
             }
-            else if (key == ConsoleKey.LeftArrow) {
+            else if (key == ConsoleKey.LeftArrow && (textmode == "Insert" || textmode == "Interactive")) {
                 MoveCursorLeft();
             }
             else if (key == ConsoleKey.PageDown) {
@@ -176,10 +199,10 @@ class TextEditor {
                 SaveFile(0);
                 break;
             }
-            else if (key == ConsoleKey.I && textmode == "Interactive") {
+            else if (key == ConsoleKey.I && (textmode == "Interactive" || textmode == "Tab")) {
                 textmode = "Insert";
             }
-            else if (key == ConsoleKey.Escape && textmode == "Insert") {
+            else if (key == ConsoleKey.Escape) {
                 textmode = "Interactive";
             }
             else if (keyInfo.KeyChar == ':' && textmode == "Interactive") {
@@ -213,11 +236,124 @@ class TextEditor {
             else if (DecimalCharacters.Contains(keyInfo.KeyChar) && textmode == "Interactive") {
                 multishift(keyInfo.KeyChar.ToString());
             }
+            else if (key == ConsoleKey.E && textmode == "Interactive") {
+                textmode = "Tab";
+            }
+            else if (key == ConsoleKey.LeftArrow && textmode == "Tab") {
+                try {
+                    string throwaway = tabs[tabnum - 1];
+                    tabnum--;
+
+                    swapcursor(tabnum, tabnum + 1);
+                    swapbuffer(tabnum, tabnum + 1);
+                } catch (Exception) {
+
+                }
+            }
+            else if (key == ConsoleKey.RightArrow && textmode == "Tab") {
+                try {
+                    string throwaway = tabs[tabnum + 1];
+                    tabnum++;
+
+                    swapcursor(tabnum, tabnum - 1);
+                    swapbuffer(tabnum, tabnum - 1);
+                } catch (Exception) {
+                    
+                }
+            }
+            else if (key == ConsoleKey.N && textmode == "Tab") {
+                int tablength = 0;
+                for (int i = 0; i < tabs.Count(); i++) {
+                    tablength += tabs[i].Length + 3;
+                }
+                tablength += 2;
+
+                if (tablength >= MaxCharactersPerLine - 5) {
+
+                } else {
+                    tabs.Add("Tab");
+                }
+
+                createnewbuffer();
+                createnewcursor();
+                linenumberstatus.Add(true);
+            }
+            else if (key == ConsoleKey.D && textmode == "Tab") {
+                try {
+                    tabbuffer.RemoveAt(tabnum);
+
+                    if (tabs.Count() >= tabnum) {
+                        if (tabs.Count() == 1) {
+                            Convert.ToInt32("fuck");
+                        }
+                        tabs.RemoveAt(tabnum);
+                        tabnum--;
+                    } else {
+                        if (tabs.Count() == 1) {
+                            Convert.ToInt32("fuck");
+                        }
+                        tabs.RemoveAt(tabnum);
+                    }
+                } catch (Exception) {
+
+                }
+            }
             else if (textmode == "Insert"){ 
                 InsertCharacter(keyInfo.KeyChar);
                 pushhistory();
             }
         }
+    }
+
+    public void createnewbuffer() {
+        tabbuffer.Add("");
+    }
+
+    public void swapbuffer(int tobuffer, int frombuffer) {
+        try {
+            string store = convertbuffer(buffer);
+
+            tabbuffer[frombuffer] = store;
+            buffer.Clear();
+
+            string load = tabbuffer[tobuffer].ToString();
+            string[] loadarray = load.Split("\n");
+
+            foreach (string temp in loadarray) {
+                buffer.Add(temp);
+            }
+        } catch (Exception) {
+
+        }
+    }
+
+    public void createnewcursor() {
+        tabcursorbufferline.Add(0);
+        tabcursorbufferrow.Add(0);
+    }
+
+    public void swapcursor(int tobuffer, int frombuffer) {
+        try {
+            tabcursorbufferline[frombuffer] = cursorLine;
+            tabcursorbufferrow[frombuffer] = cursorPosition;
+
+            cursorLine = tabcursorbufferline[tobuffer];
+            cursorPosition = tabcursorbufferrow[tobuffer];
+        } catch (Exception) {
+
+        }
+    }
+
+    private string convertbuffer(List<string> input) {
+        string converted = "";
+
+        foreach (string line in input) {
+            converted += line + "\n";
+        }
+
+        converted = converted.Remove(converted.Length - 1, 1);
+
+        return converted;
     }
     
     private void LoadFile(string path) {
@@ -331,19 +467,26 @@ class TextEditor {
             for (int i = startLine; i < startLine + visibleLines; i++) {
                 string line = buffer[i];
                 string displayLineText = line != null ? line.PadRight(MaxCharactersPerLine) : new string(' ', MaxCharactersPerLine);
-                Console.ForegroundColor = ConsoleColor.Green;
-                if (linemode == "DEC") {
-                    Console.Write(i.ToString("D8"));
-                } else if (linemode == "HEX") {
-                    Console.Write(i.ToString("X8"));
-                } else if (linemode == "BIN") {
-                    string bin = Convert.ToString((int)(i & 0xFF), 2).PadLeft(8, '0').Substring(0, 8);
-                    Console.Write(bin.PadLeft(8, '0'));                
-                } else {
-                    Console.Write(i.ToString("D8").Substring(0, 7));
+
+                if (linenumberstatus[tabnum] == true) {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    if (linemode == "DEC") {
+                        string inter = ReverseString(i.ToString("D8")).Substring(0, 8);
+                        Console.Write(ReverseString(inter));
+                    } else if (linemode == "HEX") {
+                        string inter = ReverseString(i.ToString("X8")).Substring(0, 8);
+                        Console.Write(ReverseString(inter));
+                    } else if (linemode == "BIN") {
+                        string bin = Convert.ToString((int)(i & 0xFF), 2).PadLeft(8, '0').Substring(0, 8);
+                        Console.Write(bin.PadLeft(8, '0'));                
+                    } else {
+                        string inter = ReverseString(i.ToString("D8")).Substring(0, 8);
+                        Console.Write(ReverseString(inter));
+                    }
+                    Console.Write(" | ");
+                    Console.ResetColor();
                 }
-                Console.Write(" | ");
-                Console.ResetColor();
+
                 if (highlightingstatus == false) {
                     Console.WriteLine(displayLineText);
                 }
@@ -356,20 +499,28 @@ class TextEditor {
             logindex++;
         }
 
-        Console.SetCursorPosition(cursorPosition + 12, cursorLine - startLine);
+        if (linenumberstatus[tabnum] == true) {
+            Console.SetCursorPosition(cursorPosition + 12, cursorLine - startLine);
+        } else {
+            Console.SetCursorPosition(cursorPosition, cursorLine - startLine);
+        }
             
         // Place cursor at the end of the line
         string currentLine = buffer[cursorLine];
         int lineLength = currentLine != null ? currentLine.Length : 0;
         try {
-            Console.SetCursorPosition(Min(lineLength, cursorPosition) + 11, cursorLine - startLine + infobarcharlines);
+            if (linenumberstatus[tabnum] == true) {
+                Console.SetCursorPosition(Min(lineLength, cursorPosition) + 11, cursorLine - startLine + infobarcharlines);
+            } else {
+                Console.SetCursorPosition(Min(lineLength, cursorPosition), cursorLine - startLine + infobarcharlines);
+            }
         } catch (Exception) {
 
         }
     }
 
     private void commands() {
-        if (additionaltext == "s") {
+        if (additionaltext == "s"  && tabnum == 0) {
             try {
                 File.WriteAllLines(FILEPATH, buffer);
                 additionaltext = "File saved successfully, press any key to continue...";
@@ -384,7 +535,7 @@ class TextEditor {
                 saved = 1;
             } 
         }
-        else if (additionaltext == "q") {
+        else if (additionaltext == "q" && tabnum == 0) {
             additionaltext = "s";
             commands();
             Environment.Exit(0);
@@ -401,7 +552,7 @@ class TextEditor {
             RefreshScreen();
             Console.ReadKey(true);
         }
-        else if (additionaltext.Contains("/DEBUG:setsize")) {
+        else if (additionaltext.Split(" ")[0] == "/DEBUG:setsize") {
             string[] temp = additionaltext.Split(" ");
 
             try {
@@ -416,12 +567,14 @@ class TextEditor {
                 Console.ReadKey(true);
             }
         }
-        else if (additionaltext.Contains("goto")) {
+        else if (additionaltext.Split(" ")[0] == "goto") {
             string[] temp = additionaltext.Split(" ");
 
             try {
                 int tempmax = buffer.Count;
-                if (Convert.ToInt32(temp[1]) <= tempmax && Convert.ToInt32(temp[1]) >= 0) {
+                if (temp[1] == "last") {
+                    cursorLine = buffer.Count() - 1;
+                } else if (Convert.ToInt32(temp[1]) <= tempmax && Convert.ToInt32(temp[1]) >= 0) {
                     cursorLine = Convert.ToInt32(temp[1]);
                 } else {
                     //This will throw an error
@@ -445,10 +598,19 @@ class TextEditor {
                 }
             }
         }
-        else if (additionaltext.Contains("highlight")) {
+        else if (additionaltext.Split(" ")[0] == "highlight") {
+            int done = 0;
+
+        beforefuckery:
+            if (done == 1) {
+                goto outoffuckery;
+            }
+        
             try {
                 if (additionaltext.Split(" ")[1] == "default") {
                     highlightingstatus = false;
+                    done = 1;
+                    goto beforefuckery;
                 }
 
                 highlightkeywords.Clear();
@@ -483,8 +645,14 @@ class TextEditor {
                 RefreshScreen();
                 Console.ReadKey(true);
             }
+        outoffuckery:
+            if (done == 1) {
+                additionaltext = "Reset highlighting, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            }
         }
-        else if (additionaltext.Contains("linemode")) {
+        else if (additionaltext.Split(" ")[0] == "linemode") {
             try {
                 if (additionaltext.Split(" ")[1] == "HEX") {
                     linemode = "HEX";
@@ -512,10 +680,57 @@ class TextEditor {
                 Console.ReadKey(true);
             }
         }
-        else if (additionaltext.Contains("padnum")) {
+        else if (additionaltext.Split(" ")[0] == "padnum") {
             try {
                 padnumber = Convert.ToInt32(additionaltext.Split(" ")[1]);
                 additionaltext = "Padded lines: " + padnumber + ", press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            } catch (Exception) {
+                additionaltext = "Invalid, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            }
+        }
+        else if (additionaltext.Split(" ")[0] == "linestatus") {
+            try {
+                if (additionaltext.Split(" ")[1] == "true") {
+                    linenumberstatus[tabnum] = true;
+
+                    additionaltext = "Showed lines, press any key to continue...";
+                    RefreshScreen();
+                    Console.ReadKey(true);
+                } else if (additionaltext.Split(" ")[1] == "false") {
+                    linenumberstatus[tabnum] = false;
+
+                    additionaltext = "Hid lines, press any key to continue...";
+                    RefreshScreen();
+                    Console.ReadKey(true);
+                } else {
+                    additionaltext = "Invalid, press any key to continue...";
+                    RefreshScreen();
+                    Console.ReadKey(true);
+                }
+            } catch (Exception) {
+                additionaltext = "Invalid, press any key to continue...";
+                RefreshScreen();
+                Console.ReadKey(true);
+            }
+        }
+        else if (additionaltext.Split(" ")[0] == "l" && tabnum == 0) {
+            try {
+                string file = additionaltext.Substring(2);
+
+                additionaltext = "s";
+                commands();
+
+                FILEPATH = file;
+
+                buffer.Clear();
+
+                LoadFile(file);
+
+                additionaltext = "Loaded: " + file + ", press any key to continue...";
                 RefreshScreen();
                 Console.ReadKey(true);
             } catch (Exception) {
@@ -603,12 +818,35 @@ class TextEditor {
     }
 
     private void infobar() {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        for (int i = 0; i < tabs.Count(); i++) {
+            Console.Write("| ");
+            if (i == tabnum) {
+                Console.ForegroundColor = ConsoleColor.Magenta;
+            }
+
+            Console.Write(tabs[i] + " ");
+
+            Console.ForegroundColor = ConsoleColor.Cyan;
+        }
+        Console.WriteLine("|");
+
         Console.ForegroundColor = ConsoleColor.Green;
+        for (int i = 0; i < MaxCharactersPerLine; i++) {
+            Console.Write("-");
+        }
+        Console.WriteLine("");
+
+        //text mode
         Console.WriteLine("[" + textmode + "]" + additionalstatus);
         Console.WriteLine(additionaltext);
 
         //info bar seperator line
-        Console.Write("---------+");
+        if (linenumberstatus[tabnum] == true) {
+            Console.Write("---------+");
+        } else {
+            Console.Write("----------");
+        }
         for (int i = 0; i < MaxCharactersPerLine - 10; i++) {
             Console.Write("-");
         }
@@ -706,10 +944,17 @@ class TextEditor {
         }
     }
 
+    private string ReverseString(string s) {
+        char[] charArray = s.ToCharArray();
+        Array.Reverse(charArray);
+        return new string(charArray);
+    }
+
     private void Debugger() {
         Console.BackgroundColor = ConsoleColor.DarkBlue;
         Console.Clear();
         Console.WriteLine("DEBUGGER");
+        Console.WriteLine("(!!) WARN: RUNNING CERTAIN COMMANDS MAY SCREW UP YOUR FILES\n");
         while (true) {
             Console.Write("> ");
             string input = Console.ReadLine();
@@ -745,7 +990,8 @@ class TextEditor {
                                   "quit -> Quit without saving\n" +
                                   "s    -> Save to same file\n" +
                                   "clrl -> Clear excess null lines\n" +
-                                  "cmdh -> Command line help\n");
+                                  "cmdh -> Command line help\n" + 
+                                  "tab  -> Tab number\n");
             } else if (input == "dump") {
                 foreach (string temp in buffer) {
                     Console.WriteLine(temp);
@@ -813,6 +1059,8 @@ class TextEditor {
                                   "highlight {} - Loads {} highlight file\n" +
                                   "linemode{}   - Use a different line mode\n" +
                                   "padnum {}    - {} lines the cursor can over/under run\n");
+            } else if (input == "tab") {
+
             } else {
                 Console.WriteLine("Invalid command");
             }
@@ -876,6 +1124,6 @@ class TextEditor {
 class Program {
     static void Main(string[] args) {
         TextEditor editor = new TextEditor();
-        editor.Run();
+        editor.RunTextEditor();
     }
 }
