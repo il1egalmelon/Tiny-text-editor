@@ -5,6 +5,8 @@ The release program.run is compiled with Mono on Ubuntu 22.04. Please do not use
 
 Default startup screen character size is 40x150 (Lines x Char).
 
+(II) TABS ARE VERY BROKEN AND ALSO VERY USELESS AS OF RIGHT NOW.
+
 Keybinds:
 
     ESC  -> Interactive mode
