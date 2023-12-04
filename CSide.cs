@@ -992,7 +992,7 @@ class TextEditor {
                                   "s    -> Save to same file\n" +
                                   "clrl -> Clear excess null lines\n" +
                                   "cmdh -> Command line help\n" +
-                                  "tab  -> Tab number\n");
+                                  "tab  -> Tab information\n");
             } else if (input == "dump") {
                 foreach (string temp in buffer) {
                     Console.WriteLine(temp);
