@@ -36,6 +36,7 @@ Command line:
     padnum {}     - How much the cursor can under/override the max line number
     linestatus {} - Line status from true or false
     l {}          - Saves and load a file
+    maxsize       - Sets the editor to max size of the terminal
 
 Debugs in command line:
 
